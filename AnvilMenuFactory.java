@@ -429,7 +429,12 @@ public final class AnvilMenuFactory {
 		 * @return default item name
 		 */
 		public String getItemName() {
-			return item.getItemMeta().getDisplayName();
+			ItemMeta meta = item.getItemMeta();
+			
+			if(meta == null)
+				return null;
+			
+			return meta.getDisplayName();
 		}
 
 		/**
@@ -441,8 +446,10 @@ public final class AnvilMenuFactory {
 			ItemStack item = getItemAsCopy();
 			ItemMeta meta = item.getItemMeta();
 
-			meta.setDisplayName(name);
-			item.setItemMeta(meta);
+			if(meta != null) {
+				meta.setDisplayName(name);
+				item.setItemMeta(meta);
+			}
 			this.item = item;
 		}
 
