@@ -395,7 +395,7 @@ public final class AnvilMenuFactory {
 
 		/**
 		 * Sets the title of the anvil menu. Setting the title to null will
-		 * set it to the default (Repair and Name)
+		 * set it to the default
 		 *
 		 * @param title new title
 		 */
