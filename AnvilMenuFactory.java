@@ -21,9 +21,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -87,6 +87,7 @@ public final class AnvilMenuFactory {
 				if(menu != null) {
 					try {
 						menu.itemNames.remove(p);
+						menu.dontCall.remove(p);
 						menu.getResponse().execute(p, CloseReason.DISCONNECT, menu.itemNames.remove(p));
 					} catch(Throwable t) {
 						handleError(t);
@@ -369,6 +370,8 @@ public final class AnvilMenuFactory {
 		private static final AnvilResponse DEFAULT_RESPONSE = (a, b, c) -> Result.CLOSE;
 
 		private final Map<Player, String> itemNames = new ConcurrentHashMap<>();
+		private final Map<Player, String> unmodifiableItemNames =
+				Collections.unmodifiableMap(itemNames);
 		private final List<Player> dontCall =
 				Collections.synchronizedList(new ArrayList<>());
 
@@ -430,10 +433,10 @@ public final class AnvilMenuFactory {
 		 */
 		public String getItemName() {
 			ItemMeta meta = item.getItemMeta();
-			
+
 			if(meta == null)
 				return null;
-			
+
 			return meta.getDisplayName();
 		}
 
@@ -543,12 +546,13 @@ public final class AnvilMenuFactory {
 
 		/**
 		 * Gets a list of all active viewers.
-		 * Modifications to the list will not affect the menu
+		 * Modifications to the list will result in a {@link UnsupportedOperationException}
 		 *
 		 * @return a list of all viewers
 		 */
 		public List<Player> getViewers() {
-			return new ArrayList<>(menus.keySet());
+			return menus.entrySet().stream().filter(e -> e.getValue() == Menu.this)
+					.map(Entry::getKey).toList();
 		}
 
 		/**
@@ -607,13 +611,14 @@ public final class AnvilMenuFactory {
 
 		/**
 		 * Gets the item names currently in the item name
-		 * field of the anvil
+		 * field of the anvil.
+		 * Modifications will result in a {@link UnsupportedOperationException}
 		 *
 		 * @return item names currently in the item name
 		 * field of the anvil
 		 */
 		public Map<Player, String> getItemNames() {
-			return new HashMap<>(itemNames);
+			return unmodifiableItemNames;
 		}
 
 		/**
