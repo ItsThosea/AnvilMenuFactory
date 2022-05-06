@@ -100,9 +100,6 @@ public final class AnvilMenuFactory {
 				if(!(event.getWhoClicked() instanceof Player p))
 					return;
 
-				if(event.getClickedInventory() == null || event.getClickedInventory().getType() != InventoryType.ANVIL)
-					return;
-
 				Menu menu = menus.get(p);
 
 				if(menu == null)
