@@ -3,7 +3,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
-import org.apache.commons.lang.Validate;
+import com.google.common.base.Preconditions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -70,8 +70,8 @@ public final class AnvilMenuFactory {
 	 * @param plugin plugin instance
 	 */
 	public AnvilMenuFactory(Plugin plugin) {
-		Validate.notNull(plugin, "plugin is null");
-		Validate.isTrue(plugin.isEnabled(), "plugin is not enabled");
+		Preconditions.checkNotNull(plugin, "plugin is null");
+		Preconditions.checkArgument(plugin.isEnabled(), "plugin is not enabled");
 
 		this.plugin = plugin;
 		listen();
