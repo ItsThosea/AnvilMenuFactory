@@ -1,9 +1,12 @@
 import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.PacketType.Play.Server;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
-import com.google.common.base.Preconditions;
+import com.comphenix.protocol.reflect.FuzzyReflection;
+import com.comphenix.protocol.utility.MinecraftReflection;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -19,6 +22,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +31,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+
+import static com.comphenix.protocol.utility.MinecraftReflection.getCraftBukkitClass;
+import static com.comphenix.protocol.utility.MinecraftReflection.getMinecraftClass;
 
 /**
  * <p>
@@ -61,6 +69,40 @@ public final class AnvilMenuFactory {
 	private static final ProtocolManager protocolManager =
 			ProtocolLibrary.getProtocolManager();
 
+	// Reflection
+	private static final Method getHandle = FuzzyReflection
+			.fromClass(getCraftBukkitClass("entity.CraftPlayer"))
+			.getMethodByName("getHandle");
+	private static final Field containerMenu;
+	private static final Field containerId;
+
+	static {
+		try {
+			Class<?> playerClass = MinecraftReflection.getEntityHumanClass();
+
+			containerMenu = getField(playerClass, "activeContainer", "bU");
+			containerId = getField(
+					getMinecraftClass("world.inventory.Container", "Container"),
+					"windowId", "j"
+			);
+
+			if(containerId.getType() != int.class)
+				throw new RuntimeException("Version too new!");
+			if(!containerMenu.getType().getSimpleName().equals("Container"))
+				throw new RuntimeException("Version too new!");
+		} catch(Exception e) {
+			throw new RuntimeException("Reflection error", e);
+		}
+	}
+
+	private static Field getField(Class<?> clazz, String name1, String name2) throws Exception {
+		try {
+			return clazz.getDeclaredField(name1);
+		} catch(Exception e) {
+			return clazz.getDeclaredField(name2);
+		}
+	}
+	
 	private final Map<Player, Menu> menus = new ConcurrentHashMap<>();
 	private final Plugin plugin;
 
@@ -128,6 +170,22 @@ public final class AnvilMenuFactory {
 					doSync(() -> execute(p, CloseReason.CLIENT_CLOSE));
 				} else {
 					event.setCancelled(true);
+					
+					PacketContainer packet = new PacketContainer(Server.WINDOW_DATA);
+					try {
+						Object handle = getHandle.invoke(p);
+						Object container = containerMenu.get(handle);
+						int id = (int) containerId.get(container);
+
+						packet.getIntegers().write(0, id);
+						packet.getIntegers().write(1, 0);
+						packet.getIntegers().write(2, 0);
+
+						protocolManager.sendServerPacket(p, packet);
+					} catch(Exception e) {
+						plugin.getLogger().log(Level.WARNING, "Error sending anvil price packet", e);
+					}
+					
 					String newItemName = event.getPacket().getStrings().read(0);
 
 					menu.itemNames.put(p, newItemName == null ? "" :
